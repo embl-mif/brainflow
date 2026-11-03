@@ -230,6 +230,14 @@ The version comes from git tags (setuptools-scm): tag a commit `v0.2.0` and push
 Actions then runs the tests, builds the package, makes a GitHub release and pushes the Docker image
 `ghcr.io/embl-mif/cfos-mapper:0.2.0`. Commits between tags get versions like `0.2.1.dev3+g1a2b3c4`.
 
+## Help
+
+For questions or bug reports, open an
+[issue](https://github.com/embl-mif/cfos-mapper/issues) on GitHub, or contact the current maintainers.
+
+> [!IMPORTANT]
+> If cfos-mapper contributes to your work, please acknowledge it and the EMBL Mesoscopic Imaging Facility in your publications.
+
 ## License
 
 BSD 3-Clause, like cellfinder and brainreg.
