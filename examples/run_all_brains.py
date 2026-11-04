@@ -20,9 +20,9 @@ classification, atlas and orientation) are in settings.json; the ones below only
 say what to run. Check first with a quick test (PLANES = (900, 1000)) on one brain.
 
 Run it in tmux, so it keeps going when you log out:
-    tmux new -s cfos
+    tmux new -s brainflow
     python run_all_brains.py
-    (Ctrl+B then D to leave it running, `tmux attach -t cfos` to come back)
+    (Ctrl+B then D to leave it running, `tmux attach -t brainflow` to come back)
 """
 
 import json
