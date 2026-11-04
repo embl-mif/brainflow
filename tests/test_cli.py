@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from cfos_mapper.cli import main, parser
+from brainflow.cli import main, parser
 
 
 def test_help_lists_every_step():
@@ -30,7 +30,7 @@ def test_version():
 
 def test_prepare_from_the_command_line(project):
     """The same command the napari plugin runs in the background."""
-    result = subprocess.run([sys.executable, "-m", "cfos_mapper", "--settings", project["settings_file"],
+    result = subprocess.run([sys.executable, "-m", "brainflow", "--settings", project["settings_file"],
                              "prepare", "B1", "regionA"], capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "done" in result.stdout

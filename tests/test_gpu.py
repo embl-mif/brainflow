@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from cfos_mapper import gpu
+from brainflow import gpu
 
 
 @pytest.fixture

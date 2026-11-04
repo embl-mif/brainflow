@@ -37,8 +37,8 @@ from qtpy.QtWidgets import (
 )
 from scipy.spatial import cKDTree
 
-import cfos_mapper as cf
-from cfos_mapper.gpu import gpu_count
+import brainflow as bf
+from brainflow.gpu import gpu_count
 
 from . import _common as common
 
@@ -299,13 +299,13 @@ class AnnotationWidget(QWidget):
             f"{(total.label == 'not_cell').sum()} not cells")
 
     def statistics_for(self, brain, region, network, predictions, annotations):
-        """Statistics of a network on one region (see cf.prediction_statistics)."""
-        plain_tissue = cf.far_from_candidates(predictions["control"], predictions["candidates"],
+        """Statistics of a network on one region (see bf.prediction_statistics)."""
+        plain_tissue = bf.far_from_candidates(predictions["control"], predictions["candidates"],
                                               predictions["size"])
         trained_on = None
         if network != "pretrained":
-            trained_on = cf.used_in_training(annotations, self.networks / network, brain, region)
-        return cf.prediction_statistics(predictions["calls"], annotations, plain_tissue, trained_on)
+            trained_on = bf.used_in_training(annotations, self.networks / network, brain, region)
+        return bf.prediction_statistics(predictions["calls"], annotations, plain_tissue, trained_on)
 
     # ------------------------------------------------------------------
     # 1. load a region
@@ -323,7 +323,7 @@ class AnnotationWidget(QWidget):
             self.say("No regions: make one in widget 1, then press 'Refresh lists'.")
             return
         brain, region = [s.strip() for s in self.region_box.currentText().split("/")]
-        if not cf.region_ready(brain, region, self.settings):
+        if not bf.region_ready(brain, region, self.settings):
             # new region: cut it out + find candidates in a separate process, then load it
             self.say(f"{brain} {region} is not prepared yet: cutting it out and finding candidates in a separate "
                      f"process (a few minutes). It opens by itself when ready.")
@@ -341,9 +341,9 @@ class AnnotationWidget(QWidget):
 
         @thread_worker
         def work():
-            signal, background, size, candidates = cf.prepare_region(brain, region, self.settings)
-            candidates = cf.remove_border_candidates(candidates, signal.shape, size, self.settings)
-            annotations = cf.load_annotations(self.results / brain / "test_regions" / f"{region}_annotations.csv")
+            signal, background, size, candidates = bf.prepare_region(brain, region, self.settings)
+            candidates = bf.remove_border_candidates(candidates, signal.shape, size, self.settings)
+            annotations = bf.load_annotations(self.results / brain / "test_regions" / f"{region}_annotations.csv")
             return signal, background, size, candidates, annotations
 
         def show(result):
@@ -443,7 +443,7 @@ class AnnotationWidget(QWidget):
             return
         brain, region = self.region
         network = self.network_box.currentText()
-        if not cf.predictions_ready(brain, region, network, self.settings):
+        if not bf.predictions_ready(brain, region, network, self.settings):
             # first time: the network runs in a separate process (GPU), then the result is shown
             self.say(f"running '{network}' on {brain} {region} in a separate process (about 1 minute) ...")
 
@@ -460,12 +460,12 @@ class AnnotationWidget(QWidget):
 
         @thread_worker
         def work():
-            return cf.get_predictions(brain, region, network, self.settings, max_workers=0)
+            return bf.get_predictions(brain, region, network, self.settings, max_workers=0)
 
         def show(predictions):
             if self.region != (brain, region):
                 return  # another region was loaded meanwhile
-            says = cf.network_says(self.candidates_table(), predictions["calls"])
+            says = bf.network_says(self.candidates_table(), predictions["calls"])
             self.predictions = np.where(says == "no match", "", says).astype(object)
             self.current = -1
             self.update_rings()
@@ -484,7 +484,7 @@ class AnnotationWidget(QWidget):
         network = self.network_box.currentText()
         out = self.reports / network
         missing = [(b, r) for b, r in self.all_regions()
-                   if not (cf.region_ready(b, r, self.settings) and cf.predictions_ready(b, r, network, self.settings))]
+                   if not (bf.region_ready(b, r, self.settings) and bf.predictions_ready(b, r, network, self.settings))]
         if missing:
             # first run the network on every region in a separate process (GPU), then make the report
             self.report_button.setEnabled(False)
@@ -508,13 +508,13 @@ class AnnotationWidget(QWidget):
             rows = []
             for brain, region in self.all_regions():
                 yield f"report '{network}': {brain} {region} ..."
-                predictions = cf.get_predictions(brain, region, network, self.settings,
+                predictions = bf.get_predictions(brain, region, network, self.settings,
                                                  max_workers=0)
-                annotations = cf.load_annotations(self.results / brain / "test_regions" / f"{region}_annotations.csv")
+                annotations = bf.load_annotations(self.results / brain / "test_regions" / f"{region}_annotations.csv")
                 rows.append({"brain": brain, "region": region,
                              **self.statistics_for(brain, region, network, predictions, annotations)})
                 fig = Figure(figsize=(8, 8))
-                cf.draw_calls(fig.add_subplot(), predictions["signal"], predictions["calls"],
+                bf.draw_calls(fig.add_subplot(), predictions["signal"], predictions["calls"],
                               f"{network}: {brain} {region}")
                 fig.tight_layout()
                 fig.savefig(out / f"{brain}_{region}.png", dpi=60)
@@ -559,7 +559,7 @@ class AnnotationWidget(QWidget):
         brain, region = self.region
         file = self.results / brain / "test_regions" / f"{region}_annotations.csv"
         mine = self.my_annotations()
-        cf.save_annotations(mine[mine.label == "cell"][["z", "y", "x"]].to_numpy(),
+        bf.save_annotations(mine[mine.label == "cell"][["z", "y", "x"]].to_numpy(),
                             mine[mine.label == "not_cell"][["z", "y", "x"]].to_numpy(), file)
         self.saved_labels = self.labels.copy()
         self.update_counts()
@@ -567,7 +567,7 @@ class AnnotationWidget(QWidget):
                  f"{(mine.label == 'not_cell').sum()} not cells -> {file}")
 
     # ------------------------------------------------------------------
-    # 4. train (runs `cfos-mapper train` in the background)
+    # 4. train (runs `brainflow train` in the background)
     # ------------------------------------------------------------------
     def train(self):
         if self.training is not None:

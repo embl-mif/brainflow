@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 import tifffile
 
-import cfos_mapper as cf
+import brainflow as bf
 
 # region tree: root (997) > brain (8) > A (1), B (2)
 STRUCTURES = {
@@ -37,7 +37,7 @@ def fake_atlas():
 @pytest.fixture
 def registered(project):
     """A fake brainreg output for brain B1: the brain IS the atlas (same orientation and voxel size)."""
-    folder = cf.registration_folder("B1", project)
+    folder = bf.registration_folder("B1", project)
     (folder / "input").mkdir(parents=True)
     atlas = fake_atlas()
     tifffile.imwrite(folder / "downsampled.tiff", np.zeros(ATLAS_SHAPE, np.uint16))
@@ -53,33 +53,33 @@ def registered(project):
 
 
 def test_registration_ready(project, registered):
-    assert cf.registration_ready("B1", project)
+    assert bf.registration_ready("B1", project)
 
 
 def test_cells_to_atlas(project, registered):
     cells = pd.DataFrame({"z": [5, 5, 0, 50], "y": [5, 5, 0, 50], "x": [3, 9, 0, 50]})
-    table = cf.cells_to_atlas(cells, "B1", project, atlas=registered)
+    table = bf.cells_to_atlas(cells, "B1", project, atlas=registered)
     assert list(table.structure_id) == [1, 2, 0, 0]
     assert list(table.hemisphere) == ["right", "left", "outside", "outside"]
 
 
 def test_cells_to_atlas_flipped_orientation(project, registered):
     """Same brain, but our images have x flipped ("asl"): a cell at x=3 is now at atlas x=10."""
-    info_file = cf.registration_folder("B1", project) / "input" / "input_info.json"
+    info_file = bf.registration_folder("B1", project) / "input" / "input_info.json"
     info = json.load(open(info_file))
     info["orientation"] = "asl"
     json.dump(info, open(info_file, "w"))
     cells = pd.DataFrame({"z": [5], "y": [5], "x": [3]})
-    table = cf.cells_to_atlas(cells, "B1", project, atlas=registered)
+    table = bf.cells_to_atlas(cells, "B1", project, atlas=registered)
     assert table.atlas_x.iloc[0] == ATLAS_SHAPE[2] - 1 - 3
     assert table.structure_id.iloc[0] == 2
 
 
 def test_per_region_table_counts_parents(project, registered):
     cells = pd.DataFrame({"z": [5, 5, 6], "y": [5, 5, 6], "x": [3, 9, 9]})
-    in_atlas = cf.cells_to_atlas(cells, "B1", project, atlas=registered)
-    volumes = cf.region_volumes("B1", project)
-    table = cf.per_region_table(in_atlas, volumes, registered).set_index("acronym")
+    in_atlas = bf.cells_to_atlas(cells, "B1", project, atlas=registered)
+    volumes = bf.region_volumes("B1", project)
+    table = bf.per_region_table(in_atlas, volumes, registered).set_index("acronym")
     assert table.loc["A", "cells"] == 1 and table.loc["B", "cells"] == 2
     assert table.loc["grey", "cells"] == 3 and table.loc["root", "cells"] == 3
     voxel_mm3 = (ATLAS_UM / 1000) ** 3
@@ -89,26 +89,26 @@ def test_per_region_table_counts_parents(project, registered):
 
 
 def test_count_and_summary(project, registered, monkeypatch):
-    run = cf.registration_folder("B1", project).parent / "full_brain" / "net"
+    run = bf.registration_folder("B1", project).parent / "full_brain" / "net"
     run.mkdir(parents=True)
     pd.DataFrame({"z": [5, 5], "y": [5, 5], "x": [3, 9]}).to_csv(run / "cells.csv", index=False)
-    monkeypatch.setattr(cf.atlas, "load_atlas", lambda settings: registered)
-    table = cf.count_cells_per_region("B1", "net", project)
+    monkeypatch.setattr(bf.atlas, "load_atlas", lambda settings: registered)
+    table = bf.count_cells_per_region("B1", "net", project)
     assert (run / "regions" / "cells_per_region.csv").exists()
     assert table.set_index("acronym").loc["root", "cells"] == 2
-    wide = cf.summary_table("net", project)
+    wide = bf.summary_table("net", project)
     assert "B1 cells_per_mm3" in wide.columns
 
 
 def test_describe_orientation():
-    assert cf.orientation_words("ial") == ["inferior", "anterior", "the animal's left"]
-    assert cf.describe_orientation("sal") == "z from superior, y from anterior, x from the animal's left"
-    assert cf.describe_orientation(" PIR ").startswith("z from posterior, y from inferior")
+    assert bf.orientation_words("ial") == ["inferior", "anterior", "the animal's left"]
+    assert bf.describe_orientation("sal") == "z from superior, y from anterior, x from the animal's left"
+    assert bf.describe_orientation(" PIR ").startswith("z from posterior, y from inferior")
     for wrong in ["sa", "ssl", "sax", "salp", ""]:
         with pytest.raises(ValueError):
-            cf.describe_orientation(wrong)
+            bf.describe_orientation(wrong)
 
 
 def test_registered_orientation(project, registered):
-    assert cf.registered_orientation("B1", project) == "asr"
-    assert cf.registered_orientation("B2", project) is None
+    assert bf.registered_orientation("B1", project) == "asr"
+    assert bf.registered_orientation("B2", project) is None

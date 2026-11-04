@@ -1,0 +1,25 @@
+name: brainflow
+display_name: brainflow
+contributions:
+  commands:
+    - id: brainflow.regions
+      python_name: brainflow.plugin:RegionsWidget
+      title: 1. Training regions
+    - id: brainflow.annotate
+      python_name: brainflow.plugin:AnnotationWidget
+      title: 2. Annotate and train
+    - id: brainflow.results
+      python_name: brainflow.plugin:ResultsWidget
+      title: 3. Whole-brain results
+    - id: brainflow.atlas
+      python_name: brainflow.plugin:AtlasWidget
+      title: 4. Atlas regions
+  widgets:
+    - command: brainflow.regions
+      display_name: 1. Training regions
+    - command: brainflow.annotate
+      display_name: 2. Annotate and train
+    - command: brainflow.results
+      display_name: 3. Whole-brain results
+    - command: brainflow.atlas
+      display_name: 4. Atlas regions

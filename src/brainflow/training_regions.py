@@ -3,7 +3,7 @@ Training (test) regions: small boxes cut out of a brain (regions.json), where ca
 are annotated by hand and networks are compared.
 
 Files, per brain, in results/<brain>/test_regions/:
-  <region>.ome.zarr               the region (all channels), cut out with pymif
+  <region>.ome.zarr               the region (all channels), cut out with zarrsmith
   <region>_candidates.csv         its candidates
   <region>_annotations.csv        your annotations (napari widget 2)
   <region>_pretrained.csv         calls of cellfinder's pretrained network
@@ -15,7 +15,7 @@ import json
 from pathlib import Path
 
 import pandas as pd
-import pymif.microscope_manager as mm
+import zarrsmith.microscope_manager as mm
 
 from .brightness import brightness_factors, correct_brightness
 from .classify import classify_candidates
@@ -35,7 +35,7 @@ def region_box(brain_name, region_name, settings, regions_file=None):
 
 def prepare_region(brain_name, region_name, settings, regions_file=None):
     """
-    Make sure a test region exists (cut out of the brain with pymif) and has
+    Make sure a test region exists (cut out of the brain with zarrsmith) and has
     its candidates. Returns (signal, background, voxel_size, all_candidates).
     """
     folder = region_folder(brain_name, settings)

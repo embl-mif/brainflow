@@ -2,7 +2,7 @@
 Register a brain to an atlas (brainreg) and count the cells in every atlas region.
 
 register_brain(brain, settings)
-    1. takes the autofluorescence (and cFos) at the pymif resolution level just
+    1. takes the autofluorescence (and cFos) at the zarrsmith resolution level just
        finer than half the atlas voxel (e.g. ~12 um for the 25 um Allen atlas)
     2. runs brainreg (CPU, ~30-60 min) -> results/<brain>/registration/
          downsampled.tiff              the brain at atlas resolution and orientation
@@ -119,7 +119,7 @@ def registration_ready(brain_name, settings):
 
 
 def registration_level(dataset, atlas_um):
-    """The coarsest pymif level whose voxels are all at most half the atlas voxel."""
+    """The coarsest zarrsmith level whose voxels are all at most half the atlas voxel."""
     levels = [level for level in range(len(dataset.data)) if max(voxel_size(dataset, level)) <= atlas_um / 2]
     return levels[-1] if levels else 0
 
@@ -292,7 +292,7 @@ def count_cells_per_region(brain_name, network, settings, run=None):
     """
     run_folder = Path(settings["results_folder"]) / brain_name / "full_brain" / (run or network)
     if not registration_ready(brain_name, settings):
-        raise FileNotFoundError(f"{brain_name} is not registered yet: run `cfos-mapper register {brain_name}`")
+        raise FileNotFoundError(f"{brain_name} is not registered yet: run `brainflow register {brain_name}`")
     atlas = load_atlas(settings)
     out = run_folder / "regions"
     out.mkdir(parents=True, exist_ok=True)
@@ -325,7 +325,7 @@ def summary_table(network, settings, brains=None, run=None):
     files = sorted(results.glob(f"*/full_brain/{run or network}/regions/cells_per_region.csv"))
     tables = [pd.read_csv(f) for f in files if brains is None or f.parents[3].name in brains]
     if not tables:
-        raise FileNotFoundError(f"no cells_per_region.csv for '{run or network}': run `cfos-mapper count` first")
+        raise FileNotFoundError(f"no cells_per_region.csv for '{run or network}': run `brainflow count` first")
     keys = ["structure_id", "acronym", "name", "depth"]
     wide = None
     for t in tables:

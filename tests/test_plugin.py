@@ -11,12 +11,12 @@ pytest.importorskip("pytestqt")
 def viewer(project, monkeypatch, qtbot):
     from napari.components import ViewerModel
 
-    monkeypatch.setenv("CFOS_MAPPER_SETTINGS", project["settings_file"])
+    monkeypatch.setenv("BRAINFLOW_SETTINGS", project["settings_file"])
     return ViewerModel()
 
 
 def test_all_widgets_open(viewer, qtbot):
-    from cfos_mapper.plugin import WIDGETS
+    from brainflow.plugin import WIDGETS
 
     for widget_class, _ in WIDGETS:
         widget = widget_class(viewer)
@@ -24,8 +24,8 @@ def test_all_widgets_open(viewer, qtbot):
 
 
 def test_regions_widget_draw_and_save(viewer, qtbot, project, monkeypatch):
-    import cfos_mapper as cf
-    from cfos_mapper.plugin import _common, _regions
+    import brainflow as bf
+    from brainflow.plugin import _common, _regions
 
     started = []
     monkeypatch.setattr(_common, "BackgroundJob", lambda args, done, **kw: started.append(args))
@@ -43,20 +43,20 @@ def test_regions_widget_draw_and_save(viewer, qtbot, project, monkeypatch):
 
     widget.name_edit.setText("regionNew")
     widget.save_region()
-    assert "regionNew" in cf.load_regions(project)["B1"]
+    assert "regionNew" in bf.load_regions(project)["B1"]
     assert started == [["prepare", "B1", "regionNew"]]
 
 
 def test_background_job_command_uses_the_settings(project, monkeypatch):
-    from cfos_mapper.plugin import _common
+    from brainflow.plugin import _common
 
-    monkeypatch.setenv("CFOS_MAPPER_SETTINGS", project["settings_file"])
+    monkeypatch.setenv("BRAINFLOW_SETTINGS", project["settings_file"])
     command = _common.command("prepare", "B1", "regionA")
-    assert command[1:3] == ["-m", "cfos_mapper"] and project["settings_file"] in command
+    assert command[1:3] == ["-m", "brainflow"] and project["settings_file"] in command
 
 
 def test_atlas_widget_registers_with_the_orientation_of_the_box(viewer, qtbot, project, monkeypatch):
-    from cfos_mapper.plugin import _atlas, _common
+    from brainflow.plugin import _atlas, _common
 
     started = []
     monkeypatch.setattr(_common, "BackgroundJob", lambda args, done, **kw: started.append(args))
@@ -77,7 +77,7 @@ def test_atlas_widget_registers_with_the_orientation_of_the_box(viewer, qtbot, p
 
 
 def test_atlas_widget_show_brain_follows_the_orientation_box(viewer, qtbot, project):
-    from cfos_mapper.plugin import _atlas
+    from brainflow.plugin import _atlas
 
     widget = _atlas.AtlasWidget(viewer)
     qtbot.addWidget(widget)

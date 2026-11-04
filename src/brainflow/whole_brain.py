@@ -122,7 +122,7 @@ def run_brain(brain_name, network, settings, planes=None):
     say(f"{len(cells)} cells, {info['not_cells']} not cells "
         f"({info['too_close_to_border']} candidates too close to the border)")
 
-    # outputs: density map (pymif) and overview picture
+    # outputs: density map (zarrsmith) and overview picture
     density = save_density_map(cells, brain, out_network / "cells_density.ome.zarr")
     fig, axes = plt.subplots(1, 2, figsize=(14, 8), gridspec_kw=dict(width_ratios=[2, 1]))
     axes[0].imshow(density.sum(0), cmap="magma")

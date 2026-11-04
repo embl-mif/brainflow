@@ -7,8 +7,8 @@ from pathlib import Path
 
 import numpy as np
 
-import cfos_mapper as cf
-from cfos_mapper import settings as settings_module
+import brainflow as bf
+from brainflow import settings as settings_module
 
 # colours of the rings (same meaning in every widget)
 ANNOTATION_CELL, ANNOTATION_NOT_CELL = "#00d000", "#ff2a2a"    # solid green / red
@@ -17,8 +17,8 @@ LINE = 1.6                                                      # ring line thic
 
 
 def load_settings():
-    """The project settings ($CFOS_MAPPER_SETTINGS, set by `cfos-mapper napari`, or ./settings.json)."""
-    return cf.load_settings()
+    """The project settings ($BRAINFLOW_SETTINGS, set by `brainflow napari`, or ./settings.json)."""
+    return bf.load_settings()
 
 
 def load_regions():
@@ -30,7 +30,7 @@ def save_regions(regions):
 
 
 def brain_names(settings):
-    return cf.brain_names(settings)
+    return bf.brain_names(settings)
 
 
 def ring_style(size):
@@ -47,10 +47,10 @@ def add_brain_layers(viewer, brain_name, settings):
     """
     Show a whole brain (all resolution levels, loaded only when needed) as two
     image layers: cFos (gray) and autofluorescence (green, hidden). Layers that
-    are already in the viewer are reused. Returns (pymif dataset, voxel size).
+    are already in the viewer are reused. Returns (zarrsmith dataset, voxel size).
     """
-    dataset = cf.open_brain(brain_name, settings)
-    size = cf.voxel_size(dataset)
+    dataset = bf.open_brain(brain_name, settings)
+    size = bf.voxel_size(dataset)
     for channel, label, colormap, visible in [
         (settings["background_channel"], "autofluorescence", "green", False),
         (settings["signal_channel"], "cFos", "gray", True),
@@ -58,7 +58,7 @@ def add_brain_layers(viewer, brain_name, settings):
         name = brain_layer_name(brain_name, label)
         if name in viewer.layers:
             continue
-        levels = [cf.get_channel(dataset, channel, level) for level in range(len(dataset.data))]
+        levels = [bf.get_channel(dataset, channel, level) for level in range(len(dataset.data))]
         lowest = np.asarray(levels[-1])
         viewer.add_image(levels, multiscale=True, name=name, scale=size, colormap=colormap,
                          blending="additive", visible=visible,
@@ -85,8 +85,8 @@ def remove_layers(viewer, names):
 
 
 def command(*args):
-    """The command line that runs `cfos-mapper <args>` with this project's settings, in this Python."""
-    return [sys.executable, "-m", "cfos_mapper", "--settings", load_settings()["settings_file"], *map(str, args)]
+    """The command line that runs `brainflow <args>` with this project's settings, in this Python."""
+    return [sys.executable, "-m", "brainflow", "--settings", load_settings()["settings_file"], *map(str, args)]
 
 
 def log_file(name):
@@ -97,7 +97,7 @@ def log_file(name):
 
 class BackgroundJob:
     """
-    Runs `cfos-mapper <args>` in its own process (all GPU work goes there, so a
+    Runs `brainflow <args>` in its own process (all GPU work goes there, so a
     GPU problem can never crash napari) and calls on_done(ok, log_file) when it
     has finished. A failed job is tried again (up to `tries` times in all).
     The job keeps running if napari is closed. Keep a reference to the job while it runs.

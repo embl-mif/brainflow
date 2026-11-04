@@ -1,13 +1,13 @@
 """
-cfos-mapper napari plugin: four widgets (Plugins menu -> cFos mapper)
+brainflow napari plugin: four widgets (Plugins menu -> brainflow)
 
   1. Training regions      - see the saved test regions of a brain, draw new ones
   2. Annotate and train    - annotate cells / non-cells, run and train networks
   3. Whole-brain results   - brain, network calls and cell density of a whole-brain run
   4. Atlas regions         - register a brain to the atlas, cells per region
 
-Start it with `cfos-mapper napari --settings settings.json` (all four widgets in
-one window), or from napari's Plugins menu after setting CFOS_MAPPER_SETTINGS.
+Start it with `brainflow napari --settings settings.json` (all four widgets in
+one window), or from napari's Plugins menu after setting BRAINFLOW_SETTINGS.
 """
 
 from ._annotate import AnnotationWidget
@@ -23,7 +23,7 @@ def open_viewer():
     """A napari window with the four widgets as tabs (opens on 'Training regions')."""
     import napari
 
-    viewer = napari.Viewer(title="cFos mapper")
+    viewer = napari.Viewer(title="brainflow")
     docks = [viewer.window.add_dock_widget(widget(viewer), name=name, area="right", tabify=True)
              for widget, name in WIDGETS]
     docks[0].raise_()

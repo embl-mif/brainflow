@@ -1,10 +1,10 @@
 """
-cfos-mapper: find cFos+ cells in whole cleared mouse brains and count them per
+brainflow: find cFos+ cells in whole cleared mouse brains and count them per
 atlas region.
 
-    import cfos_mapper as cf
-    settings = cf.load_settings("settings.json")
-    brain = cf.open_brain("O15", settings)
+    import brainflow as bf
+    settings = bf.load_settings("settings.json")
+    brain = bf.open_brain("O15", settings)
     ...
 
 All steps are plain functions on one brain (or one test region of a brain);
@@ -15,7 +15,7 @@ import os
 
 os.environ.setdefault("KERAS_BACKEND", "torch")  # cellfinder's network runs on torch
 
-import pymif.microscope_manager as mm  # noqa: E402
+import zarrsmith.microscope_manager as mm  # noqa: E402
 
 from .atlas import (  # noqa: E402
     cells_to_atlas,

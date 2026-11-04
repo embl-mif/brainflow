@@ -1,5 +1,5 @@
 """
-Opening and saving images with pymif (OME-Zarr).
+Opening and saving images with zarrsmith (OME-Zarr).
 
 Coordinates are always (z, y, x) in full-resolution voxels.
 """
@@ -7,12 +7,12 @@ Coordinates are always (z, y, x) in full-resolution voxels.
 from pathlib import Path
 
 import numpy as np
-import pymif.microscope_manager as mm
+import zarrsmith.microscope_manager as mm
 from tqdm import tqdm
 
 
 def open_brain(brain_name, settings):
-    """Open a brain, e.g. 'O15', with pymif (nothing is loaded yet)."""
+    """Open a brain, e.g. 'O15', with zarrsmith (nothing is loaded yet)."""
     path = Path(settings["brains_folder"]) / f"{brain_name}.ome.zarr"
     return mm.ZarrManager(str(path))
 
@@ -24,7 +24,7 @@ def brain_names(settings):
 
 def get_channel(dataset, channel_name, level=0):
     """
-    One channel of a pymif dataset as a 3D (z, y, x) lazy array.
+    One channel of a zarrsmith dataset as a 3D (z, y, x) lazy array.
     channel_name only needs to be part of the name, e.g. 'cFos' or 'auto'.
     """
     names = dataset.metadata["channel_names"]
@@ -46,7 +46,7 @@ def voxel_size(dataset, level=0):
 
 def save_region(dataset, z, y, x, out_path):
     """
-    Save a box of the full-resolution image (all channels) with pymif.
+    Save a box of the full-resolution image (all channels) with zarrsmith.
     z, y, x are (start, end) pairs in full-resolution voxels.
     """
     axes = dataset.metadata["axes"].lower()
@@ -59,7 +59,7 @@ def save_region(dataset, z, y, x, out_path):
     metadata["scales"] = [metadata["scales"][0]]
     metadata["chunksize"] = [region.chunksize]
     out = mm.ArrayManager(region, metadata, chunks=None)
-    out.to_zarr(str(out_path))
+    out.to_zarr(str(out_path), overwrite=True)
     return mm.ZarrManager(str(out_path))
 
 
@@ -81,8 +81,8 @@ def load_into_memory(lazy_array, block=122):
 
 def save_image(image, voxel_size_um, out_path, channel_names, like=None):
     """
-    Save a (c, z, y, x) or (z, y, x) numpy image as OME-Zarr with pymif.
-    like: a pymif dataset whose metadata (units, ...) is copied.
+    Save a (c, z, y, x) or (z, y, x) numpy image as OME-Zarr with zarrsmith.
+    like: a zarrsmith dataset whose metadata (units, ...) is copied.
     """
     image = np.asarray(image)
     if image.ndim == 3:
@@ -98,14 +98,14 @@ def save_image(image, voxel_size_um, out_path, channel_names, like=None):
                        ("plane_files", None), ("data_type", "intensity"), ("is_label", False)]:
         metadata.setdefault(key, value)
     metadata.pop("shards", None)
-    mm.ArrayManager(image, metadata, chunks=None).to_zarr(str(out_path))
+    mm.ArrayManager(image, metadata, chunks=None).to_zarr(str(out_path), overwrite=True)
     return mm.ZarrManager(str(out_path))
 
 
 def save_density_map(cells, brain, out_path, bin_um=50):
     """
     Number of cells per cube of bin_um x bin_um x bin_um micrometers, saved as
-    OME-Zarr with pymif (open it in napari like any image). Returns the array.
+    OME-Zarr with zarrsmith (open it in napari like any image). Returns the array.
     """
     size = voxel_size(brain)
     shape = np.array(brain.data[0].shape[-3:])  # full-resolution (z, y, x)
@@ -122,5 +122,5 @@ def save_density_map(cells, brain, out_path, bin_um=50):
         scales=[tuple(float(b * s) for b, s in zip(bin_voxels, size))],
         channel_names=[f"cells per {bin_um} um"], channel_colors=["FFFF00"], dtype="uint16",
     )
-    mm.ArrayManager(density[None], metadata, chunks=None).to_zarr(str(out_path))
+    mm.ArrayManager(density[None], metadata, chunks=None).to_zarr(str(out_path), overwrite=True)
     return density
