@@ -12,6 +12,8 @@ dist/
 wheels/
 pip-wheel-metadata/
 *.whl
+# written by setuptools-scm at build time
+src/brainflow/_version.py
 
 # --- Virtual environments ---
 .venv/
