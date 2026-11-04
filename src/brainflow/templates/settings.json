@@ -1,5 +1,5 @@
 {
-    "_comment": "cfos-mapper settings. Folders: where the brains (OME-Zarr, one per brain: <name>.ome.zarr) are, and where results go. Networks, reports, logs and atlases go next to the results folder unless given here (networks_folder, reports_folder, logs_folder, atlas.folder).",
+    "_comment": "brainflow settings. Folders: where the brains (OME-Zarr, one per brain: <name>.ome.zarr) are, and where results go. Networks, reports, logs and atlases go next to the results folder unless given here (networks_folder, reports_folder, logs_folder, atlas.folder).",
     "brains_folder": "/path/to/zarr_datasets",
     "results_folder": "/path/to/project/results",
 

@@ -1,4 +1,4 @@
-# cfos-mapper
+# brainflow
 
 Find cFos+ cells in whole cleared mouse brains imaged with a light-sheet
 microscope, and count them in every region of the Allen mouse brain atlas.
@@ -22,14 +22,14 @@ every step simple:
 | 5. registration | the brain is matched to the atlas (autofluorescence channel) | brainreg |
 | 6. regions | every cell gets its atlas region → cells and cells/mm³ per region, all brains in one table | brainglobe |
 
-Images are read and written as OME-Zarr with [pymif](https://github.com/embl-mif/pymif).
+Images are read and written as OME-Zarr with [zarrsmith](https://github.com/embl-mif/zarrsmith).
 
 You can use it in three ways, all doing exactly the same:
 
 - **napari plugin**: four widgets for drawing test regions, annotating and training, looking at
   whole-brain results, and the atlas regions
-- **command line**: `cfos-mapper <step>`, also in a Docker container on an HPC cluster
-- **Python**: `import cfos_mapper as cf`, plain functions on one brain at a time
+- **command line**: `brainflow <step>`, also in a Docker container on an HPC cluster
+- **Python**: `import brainflow as bf`, plain functions on one brain at a time
 
 ## What it looks like
 
@@ -64,21 +64,21 @@ side by side on the atlas ([`region_figures.ipynb`](examples/figures/region_figu
 
 ## Install
 
-You need Python ≥ 3.11 and, for training and whole brains, an NVIDIA GPU.
+You need Python ≥ 3.12 and, for training and whole brains, an NVIDIA GPU.
 
 ```bash
 # with the napari plugin (desktop / workstation)
-pip install "cfos-mapper[napari] @ git+https://github.com/embl-mif/cfos-mapper.git"
+pip install "brainflow[napari] @ git+https://github.com/embl-mif/brainflow.git"
 
 # without any GUI: Python API + command line only (servers, HPC, Docker)
-pip install "cfos-mapper @ git+https://github.com/embl-mif/cfos-mapper.git"
+pip install "brainflow @ git+https://github.com/embl-mif/brainflow.git"
 ```
 
 From a local copy: `pip install ".[napari]"` or `pip install .` (or `pip install ".[hpc]"`, the same).
 For development: `pip install -e ".[dev]"` and run `pytest`.
 
 > **GPUs.** torch is kept below 2.10 because newer versions dropped the V100 (sm_70) GPUs.
-> If cellfinder complains about tensorflow, set `KERAS_BACKEND=torch` (cfos-mapper does this itself
+> If cellfinder complains about tensorflow, set `KERAS_BACKEND=torch` (brainflow does this itself
 > when it is imported).
 
 ## A project: settings.json and regions.json
@@ -86,7 +86,7 @@ For development: `pip install -e ".[dev]"` and run `pytest`.
 Everything about a project lives in one settings file:
 
 ```bash
-cfos-mapper init my_project        # writes my_project/settings.json and my_project/regions.json
+brainflow init my_project        # writes my_project/settings.json and my_project/regions.json
 ```
 
 Edit `brains_folder` (one `<brain>.ome.zarr` per brain, with a cFos and an autofluorescence channel)
@@ -95,7 +95,7 @@ our data (3 × 1.46 × 1.46 µm voxels). `regions.json` holds the test regions; 
 napari.
 
 Commands find the settings file in this order: `--settings FILE`, the environment variable
-`CFOS_MAPPER_SETTINGS`, `./settings.json`.
+`BRAINFLOW_SETTINGS`, `./settings.json`.
 
 Everything the steps write goes next to the results folder:
 
@@ -113,28 +113,28 @@ project/
 ## Command line
 
 ```bash
-export CFOS_MAPPER_SETTINGS=my_project/settings.json
+export BRAINFLOW_SETTINGS=my_project/settings.json
 
-cfos-mapper napari                                   # open napari with the four widgets
-cfos-mapper prepare O15 regionA_cortex               # cut a test region, find its candidates
-cfos-mapper prepare-all                              # ... all test regions not prepared yet
-cfos-mapper predict O15 regionA_cortex pretrained    # a network's calls on a test region
-cfos-mapper predict-all network_v3                   # ... on every test region
-cfos-mapper train network_v3 --epochs 150 --gpu 1    # train on all saved annotations
-cfos-mapper run-brain O15 --network network_v3 --gpu 0              # whole brain
-cfos-mapper run-brain O15 --network network_v3 --planes 900 1000    # quick test on 100 planes
-cfos-mapper register O15                             # brainreg (CPU, ~30-60 min)
-cfos-mapper count O15 --network network_v3           # cells per atlas region
-cfos-mapper summary --network network_v3             # all brains in one table
+brainflow napari                                   # open napari with the four widgets
+brainflow prepare O15 regionA_cortex               # cut a test region, find its candidates
+brainflow prepare-all                              # ... all test regions not prepared yet
+brainflow predict O15 regionA_cortex pretrained    # a network's calls on a test region
+brainflow predict-all network_v3                   # ... on every test region
+brainflow train network_v3 --epochs 150 --gpu 1    # train on all saved annotations
+brainflow run-brain O15 --network network_v3 --gpu 0              # whole brain
+brainflow run-brain O15 --network network_v3 --planes 900 1000    # quick test on 100 planes
+brainflow register O15                             # brainreg (CPU, ~30-60 min)
+brainflow count O15 --network network_v3           # cells per atlas region
+brainflow summary --network network_v3             # all brains in one table
 ```
 
-`cfos-mapper <step> --help` explains every option. Whole brains need a lot of memory: about
+`brainflow <step> --help` explains every option. Whole brains need a lot of memory: about
 2 × the size of one channel (~550 GB for our brains).
 
 ## napari plugin
 
 ```bash
-cfos-mapper napari --settings my_project/settings.json
+brainflow napari --settings my_project/settings.json
 ```
 
 | widget | for |
@@ -149,32 +149,32 @@ light green / red = the network, magenta = you and the network disagree. *How to
 opens the full instructions.
 
 Anything that uses the GPU (finding candidates, running or training networks) or takes long
-(registration) runs as a separate `cfos-mapper` process, so napari never freezes or crashes. The
+(registration) runs as a separate `brainflow` process, so napari never freezes or crashes. The
 result appears when it is done, and the log goes to `logs/`.
 
 ## Python
 
 ```python
-import cfos_mapper as cf
+import brainflow as bf
 
-settings = cf.load_settings("my_project/settings.json")
+settings = bf.load_settings("my_project/settings.json")
 
 # a test region and its candidates
-signal, background, voxel_size, candidates = cf.prepare_region("O15", "regionA_cortex", settings)
+signal, background, voxel_size, candidates = bf.prepare_region("O15", "regionA_cortex", settings)
 
 # what a network says, and how good it is against your annotations
-predictions = cf.get_predictions("O15", "regionA_cortex", "network_v3", settings)
-annotations = cf.load_annotations(cf.annotations_file("O15", "regionA_cortex", settings))
-print(cf.prediction_statistics(predictions["calls"], annotations))
+predictions = bf.get_predictions("O15", "regionA_cortex", "network_v3", settings)
+annotations = bf.load_annotations(bf.annotations_file("O15", "regionA_cortex", settings))
+print(bf.prediction_statistics(predictions["calls"], annotations))
 
 # whole brain, registration, cells per region
-cf.run_brain("O15", "network_v3", settings)
-cf.register_brain("O15", settings)
-table = cf.count_cells_per_region("O15", "network_v3", settings)
+bf.run_brain("O15", "network_v3", settings)
+bf.register_brain("O15", settings)
+table = bf.count_cells_per_region("O15", "network_v3", settings)
 table[table.acronym == "Isocortex"]
 ```
 
-The functions are small and documented; `help(cf.find_candidates)` etc.
+The functions are small and documented; `help(bf.find_candidates)` etc.
 
 ## Examples
 
@@ -182,7 +182,7 @@ Jupyter notebooks in [`examples/`](examples):
 
 | notebook | shows |
 |---|---|
-| [`01_command_line.ipynb`](examples/01_command_line.ipynb) | a whole analysis with `cfos-mapper` commands, and on an HPC cluster with the container |
+| [`01_command_line.ipynb`](examples/01_command_line.ipynb) | a whole analysis with `brainflow` commands, and on an HPC cluster with the container |
 | [`02_python_api.ipynb`](examples/02_python_api.ipynb) | the same steps as Python functions, with plots |
 | [`03_napari_plugin.ipynb`](examples/03_napari_plugin.ipynb) | opening the plugin, a guided tour of the four widgets |
 | [`run_all_brains.py`](examples/run_all_brains.py) | the whole analysis of every brain of a project on one workstation (run-brain → register → count, then summary), skipping what is done |
@@ -195,7 +195,7 @@ default `allen_mouse_25um`). `atlas.orientation` tells brainreg how the images l
 [brainglobe letters](https://brainglobe.info/documentation/setting-up/image-definition.html):
 where axis 0, 1 and 2 start. Ours is `sal`: plane 0 is dorsal (superior), y runs from anterior,
 x from the animal's left. To register one brain with another orientation, use
-`cfos-mapper register O15 --orientation sar` or the orientation box of widget 4 in napari
+`brainflow register O15 --orientation sar` or the orientation box of widget 4 in napari
 (hover over it for what the letters mean). *Show the brain* there shows the brain with its axes
 and writes on the canvas what the letters in the box mean for it, so you can pick them by eye.
 The widget also shows the orientation each brain was registered with, and writes it on the canvas
@@ -212,31 +212,31 @@ brain.
 ## Docker / HPC
 
 Every version tag builds a Docker image with the GPU-ready, no-GUI install
-(`ghcr.io/embl-mif/cfos-mapper:<version>`, and `:latest` for the newest version). On a cluster with
+(`ghcr.io/embl-mif/brainflow:<version>`, and `:latest` for the newest version). On a cluster with
 Apptainer / Singularity:
 
 ```bash
-apptainer pull cfos-mapper.sif docker://ghcr.io/embl-mif/cfos-mapper:0.1.0
-apptainer exec --nv --bind /path/to/data cfos-mapper.sif \
-    cfos-mapper --settings /path/to/data/settings.json run-brain O15 --network network_v3
+apptainer pull brainflow.sif docker://ghcr.io/embl-mif/brainflow:0.2.0
+apptainer exec --nv --bind /path/to/data brainflow.sif \
+    brainflow --settings /path/to/data/settings.json run-brain O15 --network network_v3
 ```
 
 `--nv` gives the container the GPU, and `--bind` the data folder. Locally:
-`docker run --gpus all -v /data:/data ghcr.io/embl-mif/cfos-mapper:0.1.0 --settings /data/settings.json register O15`.
+`docker run --gpus all -v /data:/data ghcr.io/embl-mif/brainflow:0.2.0 --settings /data/settings.json register O15`.
 
 ## Versions
 
 The version comes from git tags (setuptools-scm): tag a commit `v0.2.0` and push the tag. GitHub
 Actions then runs the tests, builds the package, makes a GitHub release and pushes the Docker image
-`ghcr.io/embl-mif/cfos-mapper:0.2.0`. Commits between tags get versions like `0.2.1.dev3+g1a2b3c4`.
+`ghcr.io/embl-mif/brainflow:0.2.0`. Commits between tags get versions like `0.2.1.dev3+g1a2b3c4`.
 
 ## Help
 
 For questions or bug reports, open an
-[issue](https://github.com/embl-mif/cfos-mapper/issues) on GitHub, or contact the current maintainers.
+[issue](https://github.com/embl-mif/brainflow/issues) on GitHub, or contact the current maintainers.
 
 > [!IMPORTANT]
-> If cfos-mapper contributes to your work, please acknowledge it and the EMBL Mesoscopic Imaging Facility in your publications.
+> If brainflow contributes to your work, please acknowledge it and the EMBL Mesoscopic Imaging Facility in your publications.
 
 ## License
 

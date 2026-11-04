@@ -31,15 +31,15 @@ def synthetic_brain(seed=0):
 @pytest.fixture
 def project(tmp_path):
     """Settings of a synthetic project with brain 'B1' and one test region."""
-    import cfos_mapper as cf
+    import brainflow as bf
 
     brains = tmp_path / "brains"
     brains.mkdir()
     cfos, autofluorescence = synthetic_brain()
-    cf.save_image(np.stack([autofluorescence, cfos]), VOXEL, brains / "B1.ome.zarr",
+    bf.save_image(np.stack([autofluorescence, cfos]), VOXEL, brains / "B1.ome.zarr",
                   channel_names=["autofluo-488", "cFos-647"])
 
-    settings = json.loads((cf.settings.TEMPLATES / "settings.json").read_text())
+    settings = json.loads((bf.settings.TEMPLATES / "settings.json").read_text())
     settings.update(brains_folder=str(brains), results_folder=str(tmp_path / "project" / "results"))
     settings["find_candidates"]["n_free_cpus"] = 1
     settings["classify"]["cube_size"] = [20, 50, 50]
@@ -48,4 +48,4 @@ def project(tmp_path):
         "_comment": "test",
         "B1": {"regionA": {"z": [0, 40], "y": [0, 160], "x": [0, 160]}},
     }))
-    return cf.load_settings(tmp_path / "settings.json")
+    return bf.load_settings(tmp_path / "settings.json")

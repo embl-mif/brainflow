@@ -4,7 +4,7 @@ and the parameters of every step). See templates/settings.json.
 
 The settings file is found in this order:
   1. the path you give (Python: load_settings(path); command line: --settings)
-  2. the environment variable CFOS_MAPPER_SETTINGS
+  2. the environment variable BRAINFLOW_SETTINGS
   3. settings.json in the current folder
 """
 
@@ -12,7 +12,7 @@ import json
 import os
 from pathlib import Path
 
-ENVIRONMENT_VARIABLE = "CFOS_MAPPER_SETTINGS"
+ENVIRONMENT_VARIABLE = "BRAINFLOW_SETTINGS"
 TEMPLATES = Path(__file__).parent / "templates"
 
 # values used when the settings file does not give them
@@ -34,7 +34,7 @@ def find_settings_file(path=None):
     raise FileNotFoundError(
         "No settings file found. Give one with --settings (command line) or load_settings(path) (Python), "
         f"set {ENVIRONMENT_VARIABLE}, or run in a folder with settings.json. "
-        "`cfos-mapper init FOLDER` writes a template.")
+        "`brainflow init FOLDER` writes a template.")
 
 
 def load_settings(path=None):

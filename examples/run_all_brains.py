@@ -12,7 +12,7 @@ Steps that are already done are skipped, so the script can be stopped (Ctrl+C) a
 started again: it goes on where it stopped. A brain that fails does not stop the
 others; the table at the end says what happened to every brain.
 
-Every step runs as its own `cfos-mapper` process (the memory is freed between
+Every step runs as its own `brainflow` process (the memory is freed between
 brains), with its log in logs/pipeline/<date_time>/<brain>_<step>.log.
 
 The parameters of the steps themselves (channels, candidate detection,
@@ -34,7 +34,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
-import cfos_mapper as cf
+import brainflow as bf
 
 # ---------------------------------------------------------------------------
 # parameters
@@ -69,8 +69,8 @@ REGISTER_ALONGSIDE = True  # register (CPU) the brains while run-brain (GPU) wor
 
 # ---------------------------------------------------------------------------
 
-settings = cf.load_settings(SETTINGS)
-run_name = cf.run_folder("any", NETWORK, settings, PLANES).name  # network_v3, or network_v3_planes900-1000
+settings = bf.load_settings(SETTINGS)
+run_name = bf.run_folder("any", NETWORK, settings, PLANES).name  # network_v3, or network_v3_planes900-1000
 log_folder = Path(settings["logs_folder"]) / "pipeline" / f"{datetime.now():%Y%m%d_%H%M}"
 results = {}  # (brain, step) -> what happened
 
@@ -84,15 +84,15 @@ def orientation(brain):
 
 
 def is_done(step, brain):
-    run = cf.run_folder(brain, NETWORK, settings, PLANES)
+    run = bf.run_folder(brain, NETWORK, settings, PLANES)
     if step == "run-brain":
         info = run / "run_info.json"
         return info.exists() and "finished" in json.load(open(info))
     if step == "register":  # registered, and with the orientation wanted now
-        return cf.registration_ready(brain, settings) and cf.registered_orientation(brain, settings) == orientation(brain)
+        return bf.registration_ready(brain, settings) and bf.registered_orientation(brain, settings) == orientation(brain)
     if step == "count":  # counted after the last run-brain and the last registration
         summary = run / "regions" / "summary.json"
-        inputs = [run / "cells.csv", cf.registration_folder(brain, settings) / "registered_atlas.tiff"]
+        inputs = [run / "cells.csv", bf.registration_folder(brain, settings) / "registered_atlas.tiff"]
         return summary.exists() and all(f.exists() and f.stat().st_mtime < summary.stat().st_mtime for f in inputs)
     return False
 
@@ -109,7 +109,7 @@ def run_step(step, brain, *args):
         results[brain, step] = "not done (not in STEPS)"
         return False
     log_file = log_folder / (f"{brain}_{step}.log" if brain else f"{step}.log")
-    command = [sys.executable, "-m", "cfos_mapper", "--settings", settings["settings_file"],
+    command = [sys.executable, "-m", "brainflow", "--settings", settings["settings_file"],
                step, *([brain] if brain else []), *[str(a) for a in args]]
     say(f"{brain or 'all brains'}: {step} ...   (log: {log_file})")
     t0 = time.time()
@@ -123,7 +123,7 @@ def run_step(step, brain, *args):
 
 
 def brains_to_run():
-    available = cf.brain_names(settings)
+    available = bf.brain_names(settings)
     brains = available if BRAINS is None else list(BRAINS)
     missing = [b for b in brains if b not in available]
     if missing:
@@ -136,11 +136,11 @@ def brains_to_run():
 
 def check(brains):
     """Stop before starting hours of work if something is obviously wrong, and say what will run."""
-    if "run-brain" in STEPS and NETWORK != "pretrained" and not Path(cf.network_file(NETWORK, settings)).exists():
-        sys.exit(f"network not found: {cf.network_file(NETWORK, settings)}")
+    if "run-brain" in STEPS and NETWORK != "pretrained" and not Path(bf.network_file(NETWORK, settings)).exists():
+        sys.exit(f"network not found: {bf.network_file(NETWORK, settings)}")
     for brain in brains:
         try:
-            cf.describe_orientation(orientation(brain))
+            bf.describe_orientation(orientation(brain))
         except ValueError as e:
             sys.exit(f"{brain}: {e}")
     log_folder.mkdir(parents=True, exist_ok=True)
@@ -151,10 +151,10 @@ def check(brains):
     print(f"  steps          {', '.join(STEPS)}" + (f"   (again: {', '.join(REDO)})" if REDO else ""))
     print(f"  channels       cFos '{settings['signal_channel']}', autofluorescence '{settings['background_channel']}'")
     print(f"  atlas          {settings['atlas']['name']}, orientation '{settings['atlas']['orientation']}' "
-          f"({cf.describe_orientation(settings['atlas']['orientation'])})")
+          f"({bf.describe_orientation(settings['atlas']['orientation'])})")
     for brain, letters in ORIENTATION.items():
         if brain in brains:
-            print(f"                 {brain}: '{letters}' ({cf.describe_orientation(letters)})")
+            print(f"                 {brain}: '{letters}' ({bf.describe_orientation(letters)})")
     print(f"  results        {settings['results_folder']}")
     print(f"  logs           {log_folder}")
     for brain in brains:
@@ -189,7 +189,7 @@ def main():
     registrations.shutdown()
 
     # every brain counted with this run, also by earlier runs of the script
-    if "summary" in STEPS and any(is_done("count", b) for b in cf.brain_names(settings)):
+    if "summary" in STEPS and any(is_done("count", b) for b in bf.brain_names(settings)):
         run_step("summary", None, "--network", NETWORK, "--run", run_name)
 
     say("finished")

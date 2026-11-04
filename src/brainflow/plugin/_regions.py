@@ -13,7 +13,7 @@ from qtpy.QtWidgets import (
     QPushButton, QSpinBox, QVBoxLayout, QWidget,
 )
 
-import cfos_mapper as cf
+import brainflow as bf
 
 from . import _common as common
 
@@ -103,7 +103,7 @@ class RegionsWidget(QWidget):
         # boxes are drawn on the lowest resolution level (enough to see them, and small)
         self.low_level = len(self.dataset.data) - 1
         self.low_shape = np.array(self.dataset.data[self.low_level].shape[-3:])
-        self.low_size = cf.voxel_size(self.dataset, self.low_level)
+        self.low_size = bf.voxel_size(self.dataset, self.low_level)
         self.show_saved()
         common.focus(self.viewer, [0, 0, 0], self.full_shape * self.size)
         self.say(f"{self.brain} loaded. Saved regions are outlined; their names are written at their centre.")

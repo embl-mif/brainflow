@@ -22,7 +22,7 @@ import pandas as pd
 from napari.qt.threading import thread_worker
 from qtpy.QtWidgets import QComboBox, QGroupBox, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 
-import cfos_mapper as cf
+import brainflow as bf
 
 from . import _common as common
 
@@ -108,18 +108,18 @@ class AtlasWidget(QWidget):
         return self.brain_box.currentText()
 
     def runs(self):
-        folder = cf.registration_folder(self.brain, self.settings).parent / "full_brain"
+        folder = bf.registration_folder(self.brain, self.settings).parent / "full_brain"
         return sorted(p.parent.name for p in folder.glob("*/cells.csv"))
 
     def counts_file(self, run):
-        return cf.registration_folder(self.brain, self.settings).parent / "full_brain" / run / "regions" / \
+        return bf.registration_folder(self.brain, self.settings).parent / "full_brain" / run / "regions" / \
             "cells_per_region.csv"
 
     def update_state(self):
         if not self.brain:
             return
-        registered = cf.registration_ready(self.brain, self.settings)
-        orientation = cf.registered_orientation(self.brain, self.settings) if registered else None
+        registered = bf.registration_ready(self.brain, self.settings)
+        orientation = bf.registered_orientation(self.brain, self.settings) if registered else None
         self.state.setText(f"registered with orientation '{orientation}'" if registered else "not registered yet")
         self.register_button.setText("Register again" if registered else "Register this brain")
         # the box starts at the orientation of this brain's registration, or the settings
@@ -130,7 +130,7 @@ class AtlasWidget(QWidget):
 
     def update_orientation_text(self):
         try:
-            self.orientation_text.setText(cf.describe_orientation(self.orientation_edit.text()))
+            self.orientation_text.setText(bf.describe_orientation(self.orientation_edit.text()))
         except ValueError as e:
             self.orientation_text.setText(f"NOT VALID: {e}")
         if self.preview_brain is not None and self.preview_brain == self.brain:
@@ -145,9 +145,9 @@ class AtlasWidget(QWidget):
     def show_orientation(self, brain):
         """Write on the canvas how the brain was registered."""
         self.preview_brain = None
-        orientation = cf.registered_orientation(brain, self.settings)
+        orientation = bf.registered_orientation(brain, self.settings)
         self.write_on_canvas(f"{brain}: registered with orientation '{orientation}'\n"
-                             f"{cf.describe_orientation(orientation)}")
+                             f"{bf.describe_orientation(orientation)}")
 
     def show_brain(self):
         """The brain with its axes, to decide the orientation; the canvas says what the box means."""
@@ -168,7 +168,7 @@ class AtlasWidget(QWidget):
         """Write on the canvas what the orientation in the box means for the shown brain."""
         orientation = self.orientation_edit.text().strip().lower()
         try:
-            z, y, x = cf.orientation_words(orientation)
+            z, y, x = bf.orientation_words(orientation)
         except ValueError:
             self.write_on_canvas(f"{self.preview_brain}: orientation '{orientation}' is not valid "
                                  f"(one of s/i, a/p, l/r each)")
@@ -183,7 +183,7 @@ class AtlasWidget(QWidget):
         brain = self.brain
         orientation = self.orientation_edit.text().strip().lower()
         try:
-            words = cf.describe_orientation(orientation)
+            words = bf.describe_orientation(orientation)
         except ValueError as e:
             self.say(str(e))
             return
@@ -201,7 +201,7 @@ class AtlasWidget(QWidget):
 
     def show_atlas(self):
         brain = self.brain
-        if not cf.registration_ready(brain, self.settings):
+        if not bf.registration_ready(brain, self.settings):
             self.say(f"{brain} is not registered yet.")
             return
         dataset, size = common.add_brain_layers(self.viewer, brain, self.settings)
@@ -211,9 +211,9 @@ class AtlasWidget(QWidget):
         def work():
             import tifffile
 
-            folder = cf.registration_folder(brain, self.settings)
+            folder = bf.registration_folder(brain, self.settings)
             labels = tifffile.imread(folder / "registered_atlas_original_orientation.tiff")
-            atlas = cf.load_atlas(self.settings)
+            atlas = bf.load_atlas(self.settings)
             ids = np.unique(labels)
             names = ["outside the brain" if i == 0 else
                      f"{atlas.structures[i]['acronym']}: {atlas.structures[i]['name']}" if i in atlas.structures
@@ -249,12 +249,12 @@ class AtlasWidget(QWidget):
     def count(self):
         brain, run = self.brain, self.run_box.currentText()
         if not run:
-            self.say(f"{brain} has no whole-brain run yet (cfos-mapper run-brain).")
+            self.say(f"{brain} has no whole-brain run yet (brainflow run-brain).")
             return
-        if not cf.registration_ready(brain, self.settings):
+        if not bf.registration_ready(brain, self.settings):
             self.say(f"Register {brain} first.")
             return
-        info = json.load(open(cf.registration_folder(brain, self.settings).parent / "full_brain" / run
+        info = json.load(open(bf.registration_folder(brain, self.settings).parent / "full_brain" / run
                               / "run_info.json"))
         self.say(f"counting the cells of {brain} {run} per region in a separate process ...")
 
@@ -285,7 +285,7 @@ class AtlasWidget(QWidget):
         def work():
             import tifffile
 
-            labels = tifffile.imread(cf.registration_folder(brain, self.settings)
+            labels = tifffile.imread(bf.registration_folder(brain, self.settings)
                                      / "registered_atlas_original_orientation.tiff")
             table = pd.read_csv(self.counts_file(run)).set_index("structure_id")
             ids, inverse = np.unique(labels, return_inverse=True)

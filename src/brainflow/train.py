@@ -17,7 +17,7 @@ Everything goes to networks/<name>/:
   training.csv       loss / accuracy per epoch
 
 Choose the GPU before anything uses it: command line --gpu, or in Python set
-os.environ["CUDA_VISIBLE_DEVICES"] before importing cfos_mapper.
+os.environ["CUDA_VISIBLE_DEVICES"] before importing brainflow.
 """
 
 import json
@@ -38,7 +38,7 @@ from .training_regions import region_folder
 
 def load_region(brain_name, region_name, settings, corrected=True):
     """cFos and autofluorescence of a test region (brightness-corrected by default) and its voxel size."""
-    import pymif.microscope_manager as mm
+    import zarrsmith.microscope_manager as mm
 
     region = mm.ZarrManager(str(region_folder(brain_name, settings) / f"{region_name}.ome.zarr"))
     signal = load_into_memory(get_channel(region, settings["signal_channel"]))

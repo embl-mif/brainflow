@@ -1,5 +1,5 @@
 """
-Widget 3 - inspect a whole-brain result of `cfos-mapper run-brain` in one window:
+Widget 3 - inspect a whole-brain result of `brainflow run-brain` in one window:
 the brain (cFos, autofluorescence), what the network said about every candidate
 (light green ring = cell, light red ring = not a cell) and the cell-density map.
 """
@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pymif.microscope_manager as mm
+import zarrsmith.microscope_manager as mm
 from napari.qt.threading import thread_worker
 from qtpy.QtWidgets import QCheckBox, QComboBox, QGroupBox, QLabel, QPushButton, QVBoxLayout, QWidget
 
@@ -38,7 +38,7 @@ class ResultsWidget(QWidget):
         load_button.clicked.connect(self.load)
         self.info = QLabel("")
         self.info.setWordWrap(True)
-        self.status = QLabel("Choose a brain and a run (= network used in `cfos-mapper run-brain`), press 'Load'.")
+        self.status = QLabel("Choose a brain and a run (= network used in `brainflow run-brain`), press 'Load'.")
         self.status.setWordWrap(True)
 
         layout = QVBoxLayout(self)
@@ -86,7 +86,7 @@ class ResultsWidget(QWidget):
     def load(self):
         brain, run = self.brain_box.currentText(), self.run_box.currentText()
         if not brain or not run:
-            self.say("No whole-brain results yet: run `cfos-mapper run-brain BRAIN --network NAME` first.")
+            self.say("No whole-brain results yet: run `brainflow run-brain BRAIN --network NAME` first.")
             return
         folder = self.results / brain / "full_brain" / run
         self.say(f"loading {brain} {run} (millions of points: this takes a little while) ...")

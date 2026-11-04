@@ -1,5 +1,5 @@
 """
-One look for all figures (results and method notebooks): `from cfos_mapper.figures import style as fs`.
+One look for all figures (results and method notebooks): `from brainflow.figures import style as fs`.
 
 Colours come from a colour-blind-safe palette:
   - CELL / NOT_CELL      orange / blue  (on microscopy images)

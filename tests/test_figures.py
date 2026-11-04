@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from cfos_mapper.figures import regions as fr
+from brainflow.figures import regions as fr
 
 VISP, VISP_LAYER_1, FIBER_TRACTS = 385, 593, 1009
 STRUCTURES = {
