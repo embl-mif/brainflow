@@ -17,7 +17,7 @@ classifiers = [
 ]
 dependencies = [
     # image input / output (OME-Zarr)
-    "zarrsmith==0.6.3",
+    "zarrsmith==0.6.6",
     # cell detection + classification
     "cellfinder==1.11.*",
     # torch 2.10+ has no kernels for the V100 GPUs (sm_70); 2.9 PyPI wheels include CUDA 12.8
