@@ -44,6 +44,24 @@ def voxel_size(dataset, level=0):
     return tuple(float(v) for v in dataset.metadata["scales"][level])
 
 
+def _single_level_translation(metadata, new_scale, start_voxels=(0, 0, 0)):
+    """
+    zarrsmith keeps one translation per pyramid level; an image saved from a
+    dataset has one level. Keep the position of level 0, moved to the first
+    saved voxel (start_voxels, in full-resolution voxels) and, for coarser
+    voxels (new_scale), to the centre of the first block (NGFF 0.6 convention).
+    """
+    translations = metadata.get("translations")
+    if not translations:
+        return None
+    t0 = translations[0]
+    s0 = metadata["scales"][0]
+    out = dict(t0)
+    for axis, start, s, ns in zip("zyx", start_voxels, s0, new_scale):
+        out[axis] = float(t0.get(axis, 0.0)) + start * float(s) + (float(ns) - float(s)) / 2
+    return [out]
+
+
 def save_region(dataset, z, y, x, out_path):
     """
     Save a box of the full-resolution image (all channels) with zarrsmith.
@@ -55,6 +73,8 @@ def save_region(dataset, z, y, x, out_path):
     region = dataset.data[0][index]
 
     metadata = dict(dataset.metadata)
+    metadata["translations"] = _single_level_translation(
+        metadata, metadata["scales"][0], [box[a].start or 0 for a in "zyx"])
     metadata["size"] = [region.shape]
     metadata["scales"] = [metadata["scales"][0]]
     metadata["chunksize"] = [region.chunksize]
@@ -88,6 +108,8 @@ def save_image(image, voxel_size_um, out_path, channel_names, like=None):
     if image.ndim == 3:
         image = image[None]
     metadata = dict(like.metadata) if like is not None else {}
+    if like is not None:
+        metadata["translations"] = _single_level_translation(metadata, voxel_size_um)
     metadata.update(
         axes="czyx", size=[image.shape], chunksize=[image.shape],
         scales=[tuple(float(s) for s in voxel_size_um)],
@@ -117,9 +139,11 @@ def save_density_map(cells, brain, out_path, bin_um=50):
     np.add.at(density, index, 1)
 
     metadata = dict(brain.metadata)
+    bin_size = tuple(float(b * s) for b, s in zip(bin_voxels, size))
+    metadata["translations"] = _single_level_translation(metadata, bin_size)
     metadata.update(
         axes="czyx", size=[(1, *density.shape)], chunksize=[(1, *density.shape)],
-        scales=[tuple(float(b * s) for b, s in zip(bin_voxels, size))],
+        scales=[bin_size],
         channel_names=[f"cells per {bin_um} um"], channel_colors=["FFFF00"], dtype="uint16",
     )
     mm.ArrayManager(density[None], metadata, chunks=None).to_zarr(str(out_path), overwrite=True)
