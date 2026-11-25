@@ -76,7 +76,7 @@ from .training_regions import (  # noqa: E402
     region_folder,
     region_ready,
 )
-from .whole_brain import run_brain, run_folder  # noqa: E402
+from .whole_brain import redo_outputs, run_brain, run_folder  # noqa: E402
 
 try:
     from ._version import __version__

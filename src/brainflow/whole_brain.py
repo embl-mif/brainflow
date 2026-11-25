@@ -14,6 +14,9 @@ Find cFos+ cells in a whole brain with a trained network.
            overview.png           density map, seen from the top and the side
            run_info.json          numbers, timings, settings used
 
+If a run stops after classifying (all_candidates.csv is saved), redo_outputs
+(`brainflow redo-outputs`) makes the density map and overview from it again.
+
 Memory: about 2 x 270 GB of RAM for a whole brain (ba-training has 1.5 TB).
 """
 
@@ -41,16 +44,63 @@ def run_folder(brain_name, network, settings, planes=None):
     return Path(settings["results_folder"]) / brain_name / "full_brain" / f"{network}{part}"
 
 
+def save_outputs(cells, brain, title, out_folder):
+    """Density map (zarrsmith) and overview picture of a run's cells."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    density = save_density_map(cells, brain, out_folder / "cells_density.ome.zarr")
+    fig, axes = plt.subplots(1, 2, figsize=(14, 8), gridspec_kw=dict(width_ratios=[2, 1]))
+    axes[0].imshow(density.sum(0), cmap="magma")
+    axes[0].set_title("cells, seen from the top (sum over z)")
+    axes[1].imshow(density.sum(2).T, cmap="magma", aspect="auto")
+    axes[1].set_title("seen from the side (sum over x)")
+    for ax in axes:
+        ax.axis("off")
+    fig.suptitle(f"{title}: {len(cells)} cells (50 um bins)")
+    fig.savefig(out_folder / "overview.png", dpi=80, bbox_inches="tight")
+    plt.close(fig)
+    return density
+
+
+def redo_outputs(brain_name, network, settings, run=None):
+    """
+    Make the density map and overview of a whole-brain run again from its saved
+    all_candidates.csv, without classifying again (e.g. after a run stopped
+    while saving them). run: run folder name if not the network name.
+    Also completes run_info.json, so the run counts as finished.
+    Returns the run folder.
+    """
+    out_network = Path(settings["results_folder"]) / brain_name / "full_brain" / (run or network)
+    calls_file = out_network / "all_candidates.csv"
+    if not calls_file.exists():
+        raise FileNotFoundError(f"no classified candidates to start from: {calls_file} (run run-brain)")
+    calls = pd.read_csv(calls_file)
+    cells = calls[calls.is_cell][["z", "y", "x"]]
+    cells.to_csv(out_network / "cells.csv", index=False)
+
+    say(f"saving the density map and overview of {len(cells)} cells ...")
+    save_outputs(cells, open_brain(brain_name, settings), f"{brain_name} - {run or network}", out_network)
+
+    info_file = out_network / "run_info.json"
+    info = json.load(open(info_file)) if info_file.exists() else dict(brain=brain_name, network=network)
+    info.update(classified=len(calls), cells=len(cells), not_cells=int((~calls.is_cell).sum()))
+    if "candidates" in info:
+        info["too_close_to_border"] = info["candidates"] - len(calls)
+    info.setdefault("finished", f"{datetime.now():%Y-%m-%d %H:%M}")
+    info["outputs_redone"] = f"{datetime.now():%Y-%m-%d %H:%M}"
+    json.dump(info, open(info_file, "w"), indent=2, default=str)
+    say(f"done -> {out_network}")
+    return out_network
+
+
 def run_brain(brain_name, network, settings, planes=None):
     """
     Whole-brain cells of one brain with one of our networks (see the top of
     this file). planes = (first, last): only these z-planes, for a quick test.
     Returns the output folder.
     """
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
     model = network_file(network, settings)
     if network != "pretrained" and not Path(model).exists():
         raise FileNotFoundError(f"network not found: {model}")
@@ -122,18 +172,7 @@ def run_brain(brain_name, network, settings, planes=None):
     say(f"{len(cells)} cells, {info['not_cells']} not cells "
         f"({info['too_close_to_border']} candidates too close to the border)")
 
-    # outputs: density map (zarrsmith) and overview picture
-    density = save_density_map(cells, brain, out_network / "cells_density.ome.zarr")
-    fig, axes = plt.subplots(1, 2, figsize=(14, 8), gridspec_kw=dict(width_ratios=[2, 1]))
-    axes[0].imshow(density.sum(0), cmap="magma")
-    axes[0].set_title("cells, seen from the top (sum over z)")
-    axes[1].imshow(density.sum(2).T, cmap="magma", aspect="auto")
-    axes[1].set_title("seen from the side (sum over x)")
-    for ax in axes:
-        ax.axis("off")
-    fig.suptitle(f"{brain_name} - {network}: {len(cells)} cells (50 um bins)")
-    fig.savefig(out_network / "overview.png", dpi=80, bbox_inches="tight")
-    plt.close(fig)
+    save_outputs(cells, brain, f"{brain_name} - {network}", out_network)
 
     info["finished"] = f"{datetime.now():%Y-%m-%d %H:%M}"
     json.dump(info, open(out_network / "run_info.json", "w"), indent=2, default=str)

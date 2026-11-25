@@ -9,6 +9,7 @@ Command line: `brainflow <step> ...` (or `python -m brainflow <step> ...`).
     brainflow predict-all network_v2              ... on every test region
     brainflow train network_v3 --epochs 150 --gpu 1   train a network on all annotations
     brainflow run-brain O15 --network network_v3 --gpu 0   cells in a whole brain
+    brainflow redo-outputs O15 --network network_v3   density map + overview again (no classifying)
     brainflow register O15                        register a brain to the atlas (brainreg)
     brainflow count O15 --network network_v3      cells per atlas region
     brainflow summary --network network_v3        cells per region, all brains in one table
@@ -65,6 +66,12 @@ def parser():
     s.add_argument("--gpu", help="GPU to use (0, 1, ...)")
     s.add_argument("--planes", nargs=2, type=int, metavar=("FIRST", "LAST"),
                    help="only these z-planes (quick test)")
+
+    s = steps.add_parser("redo-outputs", help="density map and overview of a whole-brain run again, "
+                         "from its saved all_candidates.csv (no classifying)")
+    s.add_argument("brain")
+    s.add_argument("--network", required=True)
+    s.add_argument("--run", help="run folder name if not the network name (e.g. network_v3_planes900-1000)")
 
     s = steps.add_parser("register", help="register a brain to the atlas with brainreg")
     s.add_argument("brain")
@@ -139,6 +146,8 @@ def main(argv=None):
         bf.train_network(args.name, settings, epochs=args.epochs, test_fraction=args.test_fraction)
     elif args.step == "run-brain":
         bf.run_brain(args.brain, args.network, settings, planes=args.planes)
+    elif args.step == "redo-outputs":
+        bf.redo_outputs(args.brain, args.network, settings, run=args.run)
     elif args.step == "register":
         if args.orientation:
             settings["atlas"]["orientation"] = args.orientation

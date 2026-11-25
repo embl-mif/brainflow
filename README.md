@@ -123,6 +123,7 @@ brainflow predict-all network_v3                   # ... on every test region
 brainflow train network_v3 --epochs 150 --gpu 1    # train on all saved annotations
 brainflow run-brain O15 --network network_v3 --gpu 0              # whole brain
 brainflow run-brain O15 --network network_v3 --planes 900 1000    # quick test on 100 planes
+brainflow redo-outputs O15 --network network_v3                   # density map + overview again, no classifying
 brainflow register O15                             # brainreg (CPU, ~30-60 min)
 brainflow count O15 --network network_v3           # cells per atlas region
 brainflow summary --network network_v3             # all brains in one table
